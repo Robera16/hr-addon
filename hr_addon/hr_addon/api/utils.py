@@ -381,18 +381,24 @@ def send_work_anniversary_notification():
 
     ############## Sending email to specified employee leave approvers if HR Addon Settings field enable_work_anniversaries_notification_for_leave_approvers is checked
     if int(frappe.db.get_single_value("HR Addon Settings", "enable_work_anniversaries_notification_for_leave_approvers")):
+        leave_approvers_email_list = {}
         for company, anniversary_persons in employees_joined_seven_days_later.items():
             for anniversary_person in anniversary_persons:
-                if anniversary_person.get("leave_approver"):
-                    leave_approver_recipients = [anniversary_person.get("leave_approver")]
+                leave_approvers_email_list.setdefault(company, {})
+                leave_approver = anniversary_person.get("leave_approver")
+                if leave_approver:
+                    leave_approvers_email_list[company].setdefault(leave_approver, [])
+                    leave_approvers_email_list[company][leave_approver].append(anniversary_person)
                     
-                    reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
-                    send_work_anniversary_reminder(leave_approver_recipients, reminder_text, anniversary_persons, message)
-
                 else:
-                    # leave approver not set
-                    pass
-                    # frappe.msgprint(cstr(anniversary_person))
+                    leave_approvers_email_list[company].setdefault("leave_approver_missing", [])
+                    leave_approvers_email_list[company]["leave_approver_missing"].append(anniversary_person)
+
+        for company, leave_approvers_email_list_by_company in leave_approvers_email_list.items():
+            for leave_approver, anniversary_persons in leave_approvers_email_list_by_company.items():
+                if leave_approver != "leave_approver_missing":
+                    reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
+                    send_work_anniversary_reminder(leave_approver, reminder_text, anniversary_persons, message)
 
 
 def send_emails(employees_joined_today, recipients, joining_date):
