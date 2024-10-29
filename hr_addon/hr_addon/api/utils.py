@@ -368,31 +368,32 @@ def send_work_anniversary_notification():
         role_email_recipients = []
         users_with_role = get_info_based_on_role(email_recipient_role, field="email")
         for user in users_with_role:
-            emp_data = frappe.get_cached_value("Employee", {"user_id": user}, ["company", "user_id"], as_dict=True)
-            if emp_data:
-                role_email_recipients.extend([{"employee_email": emp_data.get("user_id"), "company": emp_data.get("company")}])
+            user_data = frappe.get_cached_value("Employee", {"user_id": user}, ["company", "user_id"], as_dict=True)
+            if user_data:
+                role_email_recipients.extend([{"employee_email": user_data.get("user_id"), "company": user_data.get("company")}])
             else:
-                # leave approver not set
+                # TODO: if user not found in employee, then what?
                 pass
-                # frappe.msgprint(cstr(anniversary_person))
 
         if role_email_recipients:
             send_emails(employees_joined_seven_days_later, role_email_recipients, joining_date)
 
     ############## Sending email to specified employee leave approvers if HR Addon Settings field enable_work_anniversaries_notification_for_leave_approvers is checked
     if int(frappe.db.get_single_value("HR Addon Settings", "enable_work_anniversaries_notification_for_leave_approvers")):
+        leave_approvers_email_list = {}
         for company, anniversary_persons in employees_joined_seven_days_later.items():
+            leave_approvers_email_list.setdefault(company, {"leave_approver_missing": []})
             for anniversary_person in anniversary_persons:
-                if anniversary_person.get("leave_approver"):
-                    leave_approver_recipients = [anniversary_person.get("leave_approver")]
-                    
-                    reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
-                    send_work_anniversary_reminder(leave_approver_recipients, reminder_text, anniversary_persons, message)
+                leave_approver = anniversary_person.get("leave_approver")
+                approver_key = leave_approver if leave_approver else "leave_approver_missing"
+                leave_approvers_email_list[company].setdefault(approver_key, [])
+                leave_approvers_email_list[company][approver_key].append(anniversary_person)
 
-                else:
-                    # leave approver not set
-                    pass
-                    # frappe.msgprint(cstr(anniversary_person))
+        for company, leave_approvers_email_list_by_company in leave_approvers_email_list.items():
+            for leave_approver, anniversary_persons in leave_approvers_email_list_by_company.items():
+                if leave_approver != "leave_approver_missing":
+                    reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
+                    send_work_anniversary_reminder(leave_approver, reminder_text, anniversary_persons, message)
 
 
 def send_emails(employees_joined_today, recipients, joining_date):
