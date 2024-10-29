@@ -336,7 +336,6 @@ def date_is_in_holiday_list(employee, date):
 # ----------------------------------------------------------------------
 # WORK ANNIVERSARY REMINDERS SEND TO EMPLOYEES LIST IN HR-ADDON-SETTINGS
 # ----------------------------------------------------------------------
-@frappe.whitelist()
 def send_work_anniversary_notification():
     """Send Employee Work Anniversary Reminders if 'Send Work Anniversary Reminders' is checked"""
     if not int(frappe.db.get_single_value("HR Addon Settings", "enable_work_anniversaries_notification")):
