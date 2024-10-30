@@ -340,7 +340,8 @@ def date_is_in_holiday_list(employee, date):
 # WORK ANNIVERSARY REMINDERS SEND TO EMPLOYEES LIST IN HR-ADDON-SETTINGS
 # ----------------------------------------------------------------------
 def send_work_anniversary_notification():
-    if not int(frappe.db.get_single_value("HR Addon Settings", "enable_work_anniversaries_notification")):
+    hr_addon_settings = frappe.get_single("HR Addon Settings")
+    if not hr_addon_settings.enable_work_anniversaries_notification:
         return
     
     """
@@ -374,8 +375,8 @@ def send_work_anniversary_notification():
     """
         Sending email to specified employees with Role in HR Addon Settings field anniversary_notification_email_recipient_role
     """
-    email_recipient_role = frappe.db.get_single_value("HR Addon Settings", "anniversary_notification_email_recipient_role")
-    notification_x_days_before = int(frappe.db.get_single_value("HR Addon Settings", "notification_x_days_before"))
+    email_recipient_role = hr_addon_settings.anniversary_notification_email_recipient_role
+    notification_x_days_before = hr_addon_settings.notification_x_days_before
     joining_date = frappe.utils.add_days(today(), notification_x_days_before)
     employees_joined_seven_days_later = get_employees_having_an_event_on_given_date("work_anniversary", joining_date)
     if email_recipient_role:
@@ -396,7 +397,7 @@ def send_work_anniversary_notification():
         Sending email to specified employee leave approvers if HR Addon Settings field 
         enable_work_anniversaries_notification_for_leave_approvers is checked
     """
-    if int(frappe.db.get_single_value("HR Addon Settings", "enable_work_anniversaries_notification_for_leave_approvers")):
+    if int(hr_addon_settings.enable_work_anniversaries_notification_for_leave_approvers):
         leave_approvers_email_list = {}
         for company, anniversary_persons in employees_joined_seven_days_later.items():
             leave_approvers_email_list.setdefault(company, {"leave_approver_missing": [], "leave_approver_not_active": []})
