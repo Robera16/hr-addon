@@ -383,15 +383,14 @@ def send_work_anniversary_notification():
         role_email_recipients = []
         users_with_role = get_info_based_on_role(email_recipient_role, field="email")
         for user in users_with_role:
-            user_data = frappe.get_cached_value("Employee", {"user_id": user}, ["company", "user_id"], as_dict=True)
+            user_data = frappe.get_cached_value("Employee", {"user_id": user, "status": "Active"}, ["company"], as_dict=True)
             if user_data:
-                role_email_recipients.extend([{"employee_email": user_data.get("user_id"), "company": user_data.get("company")}])
+                role_email_recipients.extend([{"employee_email": user, "company": user_data.get("company")}])
             else:
                 # TODO: if user not found in employee, then what?
                 pass
 
-        if role_email_recipients:
-            send_emails(employees_joined_seven_days_later, role_email_recipients, joining_date)
+        send_emails(employees_joined_seven_days_later, role_email_recipients, joining_date)
 
     """
         Sending email to specified employee leave approvers if HR Addon Settings field 
