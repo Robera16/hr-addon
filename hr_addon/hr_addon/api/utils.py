@@ -2,10 +2,10 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from frappe.utils.data import date_diff, time_diff_in_hours
-from frappe.utils import get_datetime, getdate, today, comma_sep, flt,add_days,date_diff,add_days
+from frappe.utils import get_datetime, getdate, today, comma_sep, flt,add_days, date_diff
 from frappe.core.doctype.role.role import get_info_based_on_role
 from frappe.query_builder import DocType
-from datetime import datetime
+
 
 def get_employee_checkin(employee,atime):
     ''' select DATE('date time');'''
@@ -333,76 +333,98 @@ def date_is_in_holiday_list(employee, date):
 
 	return len(holidays) > 0
 
+
 # ----------------------------------------------------------------------
 # WORK ANNIVERSARY REMINDERS SEND TO EMPLOYEES LIST IN HR-ADDON-SETTINGS
 # ----------------------------------------------------------------------
 def send_work_anniversary_notification():
-    """Send Employee Work Anniversary Reminders if 'Send Work Anniversary Reminders' is checked"""
-    if not int(frappe.db.get_single_value("HR Addon Settings", "enable_work_anniversaries_notification")):
+    hr_addon_settings = frappe.get_single("HR Addon Settings")
+    if not hr_addon_settings.enable_work_anniversaries_notification:
         return
     
-    ############## Sending email to specified employees in HR Addon Settings field anniversary_notification_email_list
-    emp_email_list = frappe.db.get_all("Employee Item", {"parent": "HR Addon Settings", "parentfield": "anniversary_notification_email_list"}, "employee")
+    """
+        Sending email to employees set in HR Addon Settings field anniversary_notification_email_list.
+        Filtering recipient employees from just in case employees inactive at some later point in time.
+    """
+    Employee = DocType("Employee")
+    EmployeeItem = DocType("Employee Item")
+    emp_email_list = (
+        frappe.qb.from_(Employee)
+        .join(EmployeeItem)
+        .on(Employee.name == EmployeeItem.employee)
+        .where(
+            (Employee.status == "Active") &
+            (EmployeeItem.parent == "HR Addon Settings") &
+            (EmployeeItem.parentfield == "anniversary_notification_email_list")
+        )
+        .select(Employee.name, Employee.user_id, Employee.personal_email, Employee.company_email, Employee.company)
+    ).run(as_dict=True)
+
     recipients = []
     for employee in emp_email_list:
-        employee_doc = frappe.get_doc("Employee", employee)
-        employee_email = employee_doc.get("user_id") or employee_doc.get("personal_email") or employee_doc.get("company_email")
+        employee_email = employee.get("user_id") or employee.get("personal_email") or employee.get("company_email")
         if employee_email:
-            recipients.append({"employee_email": employee_email, "company": employee_doc.company})
-        else:
-            frappe.throw(_("Email not set for {0}".format(employee)))
-
-    if not recipients:
-        frappe.throw(_("Recipient Employees not set in field 'Anniversary Notification Email List'"))
+            recipients.append({"employee_email": employee_email, "company": employee.company})
 
     joining_date = today()
     employees_joined_today = get_employees_having_an_event_on_given_date("work_anniversary", joining_date)
-    send_emails(employees_joined_today, recipients, joining_date)
+    send_work_anniversary_reminder(employees_joined_today, recipients, joining_date)
 
-    ############## Sending email to specified employees with Role in HR Addon Settings field anniversary_notification_email_recipient_role
-    email_recipient_role = frappe.db.get_single_value("HR Addon Settings", "anniversary_notification_email_recipient_role")
-    notification_x_days_before = int(frappe.db.get_single_value("HR Addon Settings", "notification_x_days_before"))
+    """
+        Sending email to specified employees with Role in HR Addon Settings field anniversary_notification_email_recipient_role
+    """
+    email_recipient_role = hr_addon_settings.anniversary_notification_email_recipient_role
+    notification_x_days_before = hr_addon_settings.notification_x_days_before
     joining_date = frappe.utils.add_days(today(), notification_x_days_before)
     employees_joined_seven_days_later = get_employees_having_an_event_on_given_date("work_anniversary", joining_date)
     if email_recipient_role:
         role_email_recipients = []
         users_with_role = get_info_based_on_role(email_recipient_role, field="email")
         for user in users_with_role:
-            user_data = frappe.get_cached_value("Employee", {"user_id": user}, ["company", "user_id"], as_dict=True)
+            user_data = frappe.get_cached_value("Employee", {"user_id": user, "status": "Active"}, ["company"], as_dict=True)
             if user_data:
-                role_email_recipients.extend([{"employee_email": user_data.get("user_id"), "company": user_data.get("company")}])
+                role_email_recipients.extend([{"employee_email": user, "company": user_data.get("company")}])
             else:
                 # TODO: if user not found in employee, then what?
                 pass
 
-        if role_email_recipients:
-            send_emails(employees_joined_seven_days_later, role_email_recipients, joining_date)
+        send_work_anniversary_reminder(employees_joined_seven_days_later, role_email_recipients, joining_date)
 
-    ############## Sending email to specified employee leave approvers if HR Addon Settings field enable_work_anniversaries_notification_for_leave_approvers is checked
-    if int(frappe.db.get_single_value("HR Addon Settings", "enable_work_anniversaries_notification_for_leave_approvers")):
+    """
+        Sending email to specified employee leave approvers if HR Addon Settings field 
+        enable_work_anniversaries_notification_for_leave_approvers is checked
+    """
+    if int(hr_addon_settings.enable_work_anniversaries_notification_for_leave_approvers):
         leave_approvers_email_list = {}
         for company, anniversary_persons in employees_joined_seven_days_later.items():
-            leave_approvers_email_list.setdefault(company, {"leave_approver_missing": []})
+            leave_approvers_email_list.setdefault(company, {"leave_approver_missing": [], "leave_approver_not_active": []})
             for anniversary_person in anniversary_persons:
                 leave_approver = anniversary_person.get("leave_approver")
-                approver_key = leave_approver if leave_approver else "leave_approver_missing"
+                if leave_approver:
+                    if frappe.db.exists("Employee", {"user_id": leave_approver, "status": "Active"}):
+                        approver_key = leave_approver
+                    else:
+                        approver_key = "leave_approver_not_active"
+
+                else:
+                    approver_key = "leave_approver_missing"
+
                 leave_approvers_email_list[company].setdefault(approver_key, [])
                 leave_approvers_email_list[company][approver_key].append(anniversary_person)
 
         for company, leave_approvers_email_list_by_company in leave_approvers_email_list.items():
             for leave_approver, anniversary_persons in leave_approvers_email_list_by_company.items():
-                if leave_approver != "leave_approver_missing":
+                if leave_approver not in ["leave_approver_missing", "leave_approver_not_active"]:
                     reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
-                    send_work_anniversary_reminder(leave_approver, reminder_text, anniversary_persons, message)
+                    send_emails(leave_approver, reminder_text, anniversary_persons, message)
 
 
-def send_emails(employees_joined_today, recipients, joining_date):
-
+def send_work_anniversary_reminder(employees_joined_today, recipients, joining_date):
     for company, anniversary_persons in employees_joined_today.items():
         reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
         recipients_by_company = [d.get('employee_email') for d in recipients if d.get('company') == company ]
         if recipients_by_company:
-            send_work_anniversary_reminder(recipients_by_company, reminder_text, anniversary_persons, message)
+            send_emails(recipients_by_company, reminder_text, anniversary_persons, message)
 
 
 def get_employees_having_an_event_on_given_date(event_type, date):
@@ -480,7 +502,7 @@ def get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_
     return reminder_text, message
 
 
-def send_work_anniversary_reminder(recipients, reminder_text, anniversary_persons, message):
+def send_emails(recipients, reminder_text, anniversary_persons, message):
     frappe.sendmail(
         recipients=recipients,
         subject=_("Work Anniversary Reminder"),
