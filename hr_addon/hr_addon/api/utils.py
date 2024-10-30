@@ -370,7 +370,7 @@ def send_work_anniversary_notification():
 
     joining_date = today()
     employees_joined_today = get_employees_having_an_event_on_given_date("work_anniversary", joining_date)
-    send_emails(employees_joined_today, recipients, joining_date)
+    send_work_anniversary_reminder(employees_joined_today, recipients, joining_date)
 
     """
         Sending email to specified employees with Role in HR Addon Settings field anniversary_notification_email_recipient_role
@@ -390,7 +390,7 @@ def send_work_anniversary_notification():
                 # TODO: if user not found in employee, then what?
                 pass
 
-        send_emails(employees_joined_seven_days_later, role_email_recipients, joining_date)
+        send_work_anniversary_reminder(employees_joined_seven_days_later, role_email_recipients, joining_date)
 
     """
         Sending email to specified employee leave approvers if HR Addon Settings field 
@@ -418,16 +418,15 @@ def send_work_anniversary_notification():
             for leave_approver, anniversary_persons in leave_approvers_email_list_by_company.items():
                 if leave_approver not in ["leave_approver_missing", "leave_approver_not_active"]:
                     reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
-                    send_work_anniversary_reminder(leave_approver, reminder_text, anniversary_persons, message)
+                    send_emails(leave_approver, reminder_text, anniversary_persons, message)
 
 
-def send_emails(employees_joined_today, recipients, joining_date):
-
+def send_work_anniversary_reminder(employees_joined_today, recipients, joining_date):
     for company, anniversary_persons in employees_joined_today.items():
         reminder_text, message = get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_date)
         recipients_by_company = [d.get('employee_email') for d in recipients if d.get('company') == company ]
         if recipients_by_company:
-            send_work_anniversary_reminder(recipients_by_company, reminder_text, anniversary_persons, message)
+            send_emails(recipients_by_company, reminder_text, anniversary_persons, message)
 
 
 def get_employees_having_an_event_on_given_date(event_type, date):
@@ -505,7 +504,7 @@ def get_work_anniversary_reminder_text_and_message(anniversary_persons, joining_
     return reminder_text, message
 
 
-def send_work_anniversary_reminder(recipients, reminder_text, anniversary_persons, message):
+def send_emails(recipients, reminder_text, anniversary_persons, message):
     frappe.sendmail(
         recipients=recipients,
         subject=_("Work Anniversary Reminder"),
