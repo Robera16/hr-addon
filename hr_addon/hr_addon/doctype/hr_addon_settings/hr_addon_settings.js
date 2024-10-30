@@ -3,6 +3,13 @@
 
 frappe.ui.form.on('HR Addon Settings', {
 	refresh: function(frm) {
+        frm.set_query("anniversary_notification_email_list", function () {
+            return {
+                filters: {
+                    status: "Active",
+                },
+            };
+        });
 	},
 
 	validate: function(frm){
