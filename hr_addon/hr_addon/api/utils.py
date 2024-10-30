@@ -2,11 +2,9 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from frappe.utils.data import date_diff, time_diff_in_hours
-from frappe.utils import get_datetime, getdate, today, comma_sep, flt,add_days, date_diff, cstr
+from frappe.utils import get_datetime, getdate, today, comma_sep, flt,add_days, date_diff
 from frappe.core.doctype.role.role import get_info_based_on_role
 from frappe.query_builder import DocType
-from frappe.query_builder import DocType
-from frappe.query_builder.functions import Count
 
 
 def get_employee_checkin(employee,atime):
