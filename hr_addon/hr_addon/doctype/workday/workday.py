@@ -15,6 +15,7 @@ class Workday(Document):
         self.date_is_in_comp_off()
         self.validate_duplicate_workday()
         self.set_status_for_leave_application()
+        # self.set_manual_workday()
 
     def set_status_for_leave_application(self):
         leave_application = frappe.db.exists(
@@ -68,11 +69,17 @@ class Workday(Document):
             'log_date': self.log_date
         })
     
-        if workday:
+        if workday and self.is_new():
             frappe.throw(
             _("Workday already exists for employee: {0}, on the given date: {1}")
             .format(self.employee, frappe.utils.formatdate(self.log_date))
             )
+
+    # def set_manual_workday(self):
+    #     if self.manual_workday:
+    #         self.employee_checkins = []
+    #         self.total_work_seconds = self.hours_worked * 60 * 60
+    #         self.expected_break_hours = 0.0
 
 
 def bulk_process_workdays_background(data,flag):
