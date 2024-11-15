@@ -94,7 +94,7 @@ var get_hours = function (frm) {
           frm.set_value("manual_workday",alog.manual_workday);
           frm.set_value("actual_working_hours", alog.actual_working_hours);
           let employee_checkins = alog.employee_checkins;
-          if (employee_checkins) {
+          if (employee_checkins.length > 0) {
             frm.set_value("first_checkin", employee_checkins[0].time);
             frm.set_value(
               "last_checkout",
