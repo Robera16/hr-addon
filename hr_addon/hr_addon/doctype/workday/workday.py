@@ -138,7 +138,8 @@ def bulk_process_workdays(data,flag):
                     "expected_break_hours": single.get("expected_break_hours"),
                     "total_break_seconds": single.get("total_break_seconds"),
                     "total_target_seconds": single.get("total_target_seconds"),
-                    "actual_working_hours": single.get("actual_working_hours")
+                    "actual_working_hours": single.get("actual_working_hours"),
+                    "manual_workday": single.get("manual_workday")
                 }
 
             workday = frappe.get_doc(doc_dict)

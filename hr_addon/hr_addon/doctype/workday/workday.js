@@ -91,7 +91,7 @@ var get_hours = function (frm) {
           frm.set_value("target_hours", alog.target_hours);
           frm.set_value("expected_break_hours", alog.expected_break_hours);
           frm.set_value("total_target_seconds", alog.total_target_seconds);
-
+          frm.set_value("manual_workday",alog.manual_workday);
           frm.set_value("actual_working_hours", alog.actual_working_hours);
           let employee_checkins = alog.employee_checkins;
           if (employee_checkins) {
