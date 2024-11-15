@@ -12,6 +12,7 @@
   "acolumn_break_1",
   "log_date",
   "status",
+  "manual_workday",
   "section_break_7",
   "employee_checkins",
   "section_break_9",
@@ -162,10 +163,17 @@
    "fieldtype": "Float",
    "label": "Expected Break Hours",
    "permlevel": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "manual_workday",
+   "fieldtype": "Check",
+   "label": "Manual Workday",
+   "permlevel": 1
   }
  ],
  "links": [],
- "modified": "2024-10-11 16:53:27.398465",
+ "modified": "2024-11-13 16:45:45.592647",
  "modified_by": "Administrator",
  "module": "HR Addon",
  "name": "Workday",

@@ -113,8 +113,8 @@ frappe.query_reports["Work Hour Report"] = {
 
 		if (column.fieldname == "actual_diff_log" ) {
 			if(value < 0) {
-				value = "<span style='color:#FF8C00'>" + hitt(value,true) + "</span>";
-				
+				// value = "<span style='color:#FF8C00'>" + hitt(value,true) + "</span>";
+				value = "<span style='color:red'>" +"-"+ hitt(value,true) + "</span>";
 			}
 			else if(value > 0){
 				value = "<span style='color:blue'>" + hitt(value,true) + "</span>";

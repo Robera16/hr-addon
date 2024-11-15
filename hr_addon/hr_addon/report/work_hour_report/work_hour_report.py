@@ -31,7 +31,7 @@ def execute(filters=None):
 		{'fieldname':'actual_working_seconds','label':_('Actual Working Hours'), "width": 110, },
 		{'fieldname':'total_target_seconds','label':'Target Seconds','width':80},
 		# {'fieldname':'diff_log','label':'Diff (Work Hours - Target Seconds)','width':90},
-		{'fieldname':'actual_diff_log','label':'Diff (Actual Working Hours - Target Seconds)','width':90},
+		{'fieldname':'actual_diff_log','label':'Diff (Actual Working Hours - Target Seconds)','width':110},
 		{'fieldname':'first_in','label':'First Checkin','width':100},
 		{'fieldname':'last_out','label':'Last Checkout','width':100},
 		{'fieldname':'attendance','label':'Attendance','width': 160},
@@ -63,7 +63,7 @@ def execute(filters=None):
         END - total_target_seconds) AS diff_log,
 		(CASE 
             WHEN actual_working_hours < 0 
-            THEN (0 - total_target_seconds)
+            THEN actual_working_hours * 60 * 60
             ELSE (actual_working_hours * 60 * 60 - total_target_seconds)
         END) AS actual_diff_log,
         TIME(first_checkin) AS first_in,
