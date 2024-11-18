@@ -132,35 +132,28 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
             last_checkout = clockout_list[-1]  # Last element of clockout_list
             total_duration = time_diff_in_hours(last_checkout, first_checkin) 
 
-    break_hours = 0.0
-    if len(employee_checkins) % 2 == 0:
-        for i in range(len(clockout_list) - 1):
-            wh = time_diff_in_hours(clockin_list[i + 1], clockout_list[i])
-            break_hours += float(wh)
-
-    else:
-        break_hours = flt(-360.0)
-
     default_break_minutes = employee_default_work_hour.break_minutes
     default_break_hours = flt(default_break_minutes / 60)
     target_hours = employee_default_work_hour.hours
-
     hr_addon_settings = frappe.get_doc("HR Addon Settings")
 
-    if hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins":
-        if len(employee_checkins) % 2 == 0:
-            break_hours = 0.0
+    if len(employee_checkins) % 2 == 0:
+        if hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins":
             for i in range(len(clockout_list) - 1):
                 wh = time_diff_in_hours(clockin_list[i + 1], clockout_list[i])
                 break_hours += float(wh)
 
-    elif hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Weekly Working Hours":
-        break_hours = default_break_hours
-
-    elif hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Weekly Working Hours if Shorter breaks":
-        if break_hours <= default_break_hours:
+        elif hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Weekly Working Hours":
             break_hours = default_break_hours
 
+        elif hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Weekly Working Hours if Shorter breaks":
+            if break_hours <= default_break_hours:
+                break_hours = default_break_hours
+        else:
+            break_hours = 0.0
+
+    else:
+        break_hours = flt(-360.0)
     
     total_target_seconds = target_hours * 60 * 60
     total_work_seconds = flt(hours_worked * 60 * 60)
@@ -189,21 +182,6 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
     #    actual_working_hours = 0  
     #    #frappe.msgprint(frappe.get_desk_link("Leave Application", comp_off_doc) )
     #    frappe.msgprint("The selected employee: {} has a Leave Application with the leave type: 'Freizeitausgleich (Nicht buchen!)' on the given date :{}.".format(aemployee,adate))
-
-    hr_addon_settings = frappe.get_doc("HR Addon Settings")
-    if hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins":
-        if (len(employee_checkins) % 2 == 0):
-            for i in range(len(clockout_list)):
-                if ((i+1) < len(clockout_list)):
-                    wh = time_diff_in_hours(clockin_list[i+1],clockout_list[i])
-                    break_hours += float(str(wh))
-
-    elif hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Weekly Working Hours":
-        break_hours = flt(default_break_hours)
-
-    elif hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Weekly Working Hours if Shorter breaks":
-        if break_hours <= default_break_hours:
-            break_hours = flt(default_break_hours)
 
     # if target_hours == 0:
     #     expected_break_hours = 0
