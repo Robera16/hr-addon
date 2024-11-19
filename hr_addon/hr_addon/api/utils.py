@@ -102,6 +102,7 @@ def get_actual_employee_log(aemployee, adate):
 
 
 def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, is_target_hours_zero_on_holiday,is_date_in_holiday_list=False):
+    hr_addon_settings = frappe.get_doc("HR Addon Settings")
     new_workday = {}
 
     hours_worked = 0.0
@@ -132,10 +133,12 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
             last_checkout = clockout_list[-1]  # Last element of clockout_list
             total_duration = time_diff_in_hours(last_checkout, first_checkin) 
 
+        if hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins" and hr_addon_settings.swap_hours_worked_and_actual_working_hours:
+            total_duration, hours_worked = hours_worked, total_duration
+
     default_break_minutes = employee_default_work_hour.break_minutes
     default_break_hours = flt(default_break_minutes / 60)
     target_hours = employee_default_work_hour.hours
-    hr_addon_settings = frappe.get_doc("HR Addon Settings")
 
     if len(employee_checkins) % 2 == 0:
         break_from_checkins = 0.0
@@ -163,11 +166,19 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
     expected_break_hours = flt(default_break_minutes / 60)
     total_break_seconds = flt(break_hours * 60 * 60)
     hours_worked = flt(hours_worked)
-     
-    if total_duration > 0:
-        actual_working_hours = total_duration - break_hours
-    else:    
-        actual_working_hours = hours_worked - expected_break_hours
+
+    if hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins" and hr_addon_settings.swap_hours_worked_and_actual_working_hours:
+        #swapping for gall
+        if hours_worked > 0:
+            actual_working_hours = hours_worked - break_hours
+        else:    
+            actual_working_hours = total_duration - expected_break_hours
+
+    else:
+        if total_duration > 0:
+            actual_working_hours = total_duration - break_hours
+        else:    
+            actual_working_hours = hours_worked - expected_break_hours
     attendance = employee_checkins[0].attendance if len(employee_checkins) > 0 else ""
 
     if no_break_hours and hours_worked < 6: # TODO: set 6 as constant
