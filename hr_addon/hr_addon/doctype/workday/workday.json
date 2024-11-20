@@ -172,11 +172,12 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
-   "label": "Employee Name"
+   "label": "Employee Name",
+   "read_only": 1
   }
  ],
  "links": [],
- "modified": "2024-11-20 11:33:30.150412",
+ "modified": "2024-11-20 13:43:33.422347",
  "modified_by": "Administrator",
  "module": "HR Addon",
  "name": "Workday",
