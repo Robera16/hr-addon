@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "employee",
+  "employee_name",
   "attendance",
   "acolumn_break_1",
   "log_date",
@@ -59,27 +60,28 @@
   {
    "fieldname": "target_hours",
    "fieldtype": "Float",
-   "label": "Target Hours"
+   "label": "Target Hours",
+   "precision": "2"
   },
   {
    "fieldname": "hours_worked",
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Hours worked",
+   "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "number_of_breaks",
    "fieldtype": "Int",
-   "hidden": 0,
    "label": "Number of Breaks",
    "read_only": 1
   },
   {
    "fieldname": "break_hours",
    "fieldtype": "Float",
-   "hidden": 0,
    "label": "Break Hours",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -156,20 +158,29 @@
    "fieldname": "actual_working_hours",
    "fieldtype": "Float",
    "label": "Actual Working Hours",
+   "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "expected_break_hours",
    "fieldtype": "Float",
    "label": "Expected Break Hours",
+   "precision": "2",
    "read_only": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
   }
  ],
  "links": [],
- "modified": "2024-07-24 16:45:02.502629",
+ "modified": "2024-11-20 11:33:30.150412",
  "modified_by": "Administrator",
  "module": "HR Addon",
  "name": "Workday",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -198,5 +209,6 @@
   }
  ],
  "sort_field": "modified",
- "sort_order": "DESC"
+ "sort_order": "DESC",
+ "states": []
 }
