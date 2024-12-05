@@ -103,6 +103,7 @@ def get_actual_employee_log(aemployee, adate):
 
 def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, is_target_hours_zero_on_holiday,is_date_in_holiday_list=False):
     hr_addon_settings = frappe.get_doc("HR Addon Settings")
+    is_break_from_checkins_with_swapped_hours = hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins" and hr_addon_settings.swap_hours_worked_and_actual_working_hours
     new_workday = {}
 
     hours_worked = 0.0
@@ -133,7 +134,7 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
             last_checkout = clockout_list[-1]  # Last element of clockout_list
             total_duration = time_diff_in_hours(last_checkout, first_checkin) 
 
-        if hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins" and hr_addon_settings.swap_hours_worked_and_actual_working_hours:
+        if is_break_from_checkins_with_swapped_hours:
             total_duration, hours_worked = hours_worked, total_duration
 
     default_break_minutes = employee_default_work_hour.break_minutes
@@ -167,7 +168,7 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
     total_break_seconds = flt(break_hours * 60 * 60)
     hours_worked = flt(hours_worked)
 
-    if hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins" and hr_addon_settings.swap_hours_worked_and_actual_working_hours:
+    if is_break_from_checkins_with_swapped_hours:
         #swapping for gall
         if hours_worked > 0:
             actual_working_hours = hours_worked - break_hours
@@ -181,7 +182,7 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
             actual_working_hours = hours_worked - expected_break_hours
     attendance = employee_checkins[0].attendance if len(employee_checkins) > 0 else ""
 
-    if no_break_hours and hours_worked < 6: # TODO: set 6 as constant
+    if no_break_hours and hours_worked < 6 and not is_break_from_checkins_with_swapped_hours: # TODO: set 6 as constant
         default_break_minutes = 0
         total_break_seconds = 0
         #expected_break_hours = 0
