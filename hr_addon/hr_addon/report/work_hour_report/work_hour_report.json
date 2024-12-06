@@ -10,7 +10,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": "Sunlight",
- "modified": "2022-06-03 00:18:21.420312",
+ "modified": "2024-12-05 22:27:41.292454",
  "modified_by": "Administrator",
  "module": "HR Addon",
  "name": "Work Hour Report",
@@ -28,6 +28,9 @@
   },
   {
    "role": "HR Manager"
+  },
+  {
+   "role": "Employee"
   }
  ]
 }

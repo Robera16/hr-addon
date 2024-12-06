@@ -173,7 +173,7 @@
   }
  ],
  "links": [],
- "modified": "2024-11-13 16:45:45.592647",
+ "modified": "2024-12-05 22:28:58.266573",
  "modified_by": "Administrator",
  "module": "HR Addon",
  "name": "Workday",
@@ -223,6 +223,13 @@
    "report": 1,
    "role": "HR Manager",
    "share": 1
+  },
+  {
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Employee",
+   "select": 1
   }
  ],
  "sort_field": "modified",
