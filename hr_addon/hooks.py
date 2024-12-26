@@ -209,6 +209,6 @@ scheduler_events = {
         "hr_addon.custom_scripts.custom_python.weekly_working_hours.set_from_to_dates",
 	],
 	"daily": [
-		"hr_addon.hr_addon.api.utils.send_work_anniversary_notification"
+		"hr_addon.hr_addon.doctype.hr_addon_settings.hr_addon_settings.send_work_anniversary_notification"
 	]
 }
