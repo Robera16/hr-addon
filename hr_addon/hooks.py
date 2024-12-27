@@ -199,7 +199,6 @@ doc_events = {
     }
 }
 
-doctype_list_js = {"Weekly Working Hours" : "public/js/list_view.js"}
 
 scheduler_events = {
 	"hourly": [
