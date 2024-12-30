@@ -4,16 +4,46 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, get_datetime, getdate, today, add_days, formatdate, flt
+from frappe.utils import cint, get_datetime, getdate, add_days, formatdate, flt, cstr
 from frappe.utils.data import date_diff, time_diff_in_hours
 import traceback
 
 class Workday(Document):
     def validate(self):
+        self.set_actual_employee_log()
         self.date_is_in_comp_off()
         self.validate_duplicate_workday()
         self.set_status_for_leave_application()
         # self.set_manual_workday()
+
+    def set_actual_employee_log(self):
+        new_workday_dict = get_actual_employee_log(self.employee, self.log_date)
+        self.employee_checkins = []
+
+        self.hours_worked = new_workday_dict.get("hours_worked")
+        self.break_hours = new_workday_dict.get("break_hours")
+        self.total_work_seconds = new_workday_dict.get("total_work_seconds")
+        self.total_break_seconds = new_workday_dict.get("total_break_seconds")
+        self.target_hours = new_workday_dict.get("target_hours")
+        self.expected_break_hours = new_workday_dict.get("expected_break_hours")
+        self.total_target_seconds = new_workday_dict.get("total_target_seconds")
+        self.manual_workday = new_workday_dict.get("manual_workday")
+        self.actual_working_hours = new_workday_dict.get("actual_working_hours")
+        self.attendance = new_workday_dict.get("attendance")
+
+        employee_checkins = new_workday_dict.get("employee_checkins") or []
+
+        for employee_checkin in employee_checkins:
+            self.append("employee_checkins", {
+                "employee_checkin": employee_checkin.get("log_type"),
+                "log_type": employee_checkin.get("log_type"),
+                "log_time": employee_checkin.get("time"),
+                "skip_auto_attendance": employee_checkin.get("skip_auto_attendance"),
+            })
+
+        if employee_checkins:
+            self.first_checkin = employee_checkins[0].time
+            self.last_checkout = employee_checkins[-1].time
 
     def set_status_for_leave_application(self):
         leave_application = frappe.db.exists(
@@ -35,6 +65,10 @@ class Workday(Document):
             self.total_work_seconds= 0
             self.status = "On Leave"
 
+        if (self.status == 'Half Day'):
+            self.target_hours = self.target_hours / 2
+        elif (self.status == 'On Leave'):
+            self.target_hours = 0
 
     def date_is_in_comp_off(self):
         leave_application_freizeit = frappe.db.exists(
@@ -111,62 +145,13 @@ def bulk_process_workdays(data,flag):
     
     for date in data.unmarked_days:
         try:
-            single = get_actual_employee_log_for_bulk_process(data.employee, get_datetime(date))
-            
-            
-            # Check if the workday already exists
-            existing_workday = frappe.get_value('Workday', {
-                'employee': data.employee,
-                'log_date': get_datetime(date)
-            })
-            
-            if existing_workday:
-                continue  # Skip creating if it already exists
-
-            doc_dict = {
-                    "doctype": 'Workday',
-                    "employee": data.employee,
-                    "log_date": get_datetime(date),
-                    "company": company,
-                    "attendance": single.get("attendance"),
-                    "hours_worked": single.get("hours_worked"),
-                    "break_hours": single.get("break_hours"),
-                    "target_hours": single.get("target_hours"),
-                    "total_work_seconds": single.get("total_work_seconds"),
-                    "expected_break_hours": single.get("expected_break_hours"),
-                    "total_break_seconds": single.get("total_break_seconds"),
-                    "total_target_seconds": single.get("total_target_seconds"),
-                    "actual_working_hours": single.get("actual_working_hours"),
-                    "manual_workday": single.get("manual_workday")
-                }
-
-            workday = frappe.get_doc(doc_dict)
-
-            if (workday.status == 'Half Day'):
-                workday.target_hours = workday.target_hours / 2
-            elif (workday.status == 'On Leave'):
-                workday.target_hours = 0
-
-            employee_checkins = single.get("employee_checkins")
-            if employee_checkins:
-                workday.first_checkin = employee_checkins[0].time
-                workday.last_checkout = employee_checkins[-1].time
-
-                for employee_checkin in employee_checkins:
-                    workday.append("employee_checkins", {
-                        "employee_checkin": employee_checkin.get("name"),   
-                        "log_type": employee_checkin.get("log_type"),   
-                        "log_time": employee_checkin.get("time"),   
-                        "skip_auto_attendance": employee_checkin.get("skip_auto_attendance"),   
-                    })
-            
-            if len(employee_checkins) % 2 != 0:
-                formatted_date = frappe.utils.formatdate(workday.log_date)
-                #frappe.msgprint("CheckIns must be in pairs for the given date: " + formatted_date)
-            if flag == "Create workday":
-                frappe.logger("Creating Workday").error(flag)
-                workday.insert()
-                frappe.logger("Creating Workday").error(workday)
+            if not frappe.db.exists('Workday', {'employee': data.employee,'log_date': get_datetime(date)}):
+                workday = frappe.new_doc("Workday")
+                workday.employee = data.employee
+                workday.company = company
+                workday.log_date = get_datetime(date)
+                if flag == "Create workday":
+                    workday.save()
 
             missing_dates.append(get_datetime(date))
 
@@ -553,64 +538,6 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
         "total_break_seconds": total_break_seconds,
         "employee_checkins":employee_checkins,
     })
-
-    return new_workday
-
-
-@frappe.whitelist()
-def get_actual_employee_log_for_bulk_process(aemployee, adate):
-    employee_checkins = get_employee_checkin(aemployee, adate)
-    employee_default_work_hour = get_employee_default_work_hour(aemployee, adate)
-    is_date_in_holiday_list = date_is_in_holiday_list(aemployee, adate)
-
-    # Initialize 'fields' before it's used
-    fields = ["name", "no_break_hours", "set_target_hours_to_zero_when_date_is_holiday"]
-    
-    # Fetch weekly working hours using the 'fields' variable
-    weekly_working_hours = frappe.db.get_list(doctype="Weekly Working Hours", filters={"employee": aemployee}, fields=fields)
-    is_target_hours_zero_on_holiday = len(weekly_working_hours) > 0 and weekly_working_hours[0]["set_target_hours_to_zero_when_date_is_holiday"] == 1
-
-    if employee_checkins:
-        # Determine if 'no_break_hours' should be set to True or False
-        no_break_hours = True if len(weekly_working_hours) > 0 and weekly_working_hours[0]["no_break_hours"] == 1 else False
-        new_workday = get_workday(employee_checkins, employee_default_work_hour, no_break_hours, is_target_hours_zero_on_holiday, is_date_in_holiday_list)
-    else:
-        view_employee_attendance = get_employee_attendance(aemployee, adate)
-        
-        break_minutes = employee_default_work_hour.break_minutes
-        expected_break_hours = flt(break_minutes / 60)
-        
-        if is_target_hours_zero_on_holiday and is_date_in_holiday_list:
-            new_workday = {
-                "target_hours": 0,
-                "total_target_seconds": 0,
-                "break_minutes": employee_default_work_hour.break_minutes,
-                "actual_working_hours": 0,
-                "hours_worked": 0,
-                "nbreak": 0,
-                "attendance": view_employee_attendance[0].name if len(view_employee_attendance) > 0 else "",
-                "break_hours": 0,
-                "total_work_seconds": 0,
-                "total_break_seconds": 0,
-                "employee_checkins": [],
-                "first_checkin": "",
-                "last_checkout": "",
-                "expected_break_hours": 0,
-            }
-        else:
-            new_workday = {
-                "target_hours": employee_default_work_hour.hours,
-                "total_target_seconds": employee_default_work_hour.hours * 60 * 60,
-                "break_minutes": employee_default_work_hour.break_minutes,
-                "actual_working_hours": -employee_default_work_hour.hours,
-                "manual_workday": 1,
-                "hours_worked": 0,
-                "nbreak": 0,
-                "attendance": view_employee_attendance[0].name if len(view_employee_attendance) > 0 else "",
-                "break_hours": 0,
-                "employee_checkins": [],
-                "expected_break_hours": expected_break_hours,
-            }
 
     return new_workday
 
