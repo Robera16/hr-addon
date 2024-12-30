@@ -37,12 +37,14 @@
    "fieldname": "employee",
    "fieldtype": "Link",
    "label": "Employee",
-   "options": "Employee"
+   "options": "Employee",
+   "reqd": 1
   },
   {
    "fieldname": "log_date",
    "fieldtype": "Date",
-   "label": "Date"
+   "label": "Date",
+   "reqd": 1
   },
   {
    "fieldname": "attendance",
@@ -93,7 +95,8 @@
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_5",
@@ -173,7 +176,7 @@
   }
  ],
  "links": [],
- "modified": "2024-12-05 22:28:58.266573",
+ "modified": "2024-12-30 14:38:07.679382",
  "modified_by": "Administrator",
  "module": "HR Addon",
  "name": "Workday",
