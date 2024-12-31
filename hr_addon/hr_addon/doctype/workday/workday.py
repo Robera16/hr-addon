@@ -6,6 +6,9 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, get_datetime, getdate, add_days, formatdate, flt, cstr
 from frappe.utils.data import date_diff, time_diff_in_hours
+from pypika import Order
+from pypika.functions import Date
+from datetime import datetime
 import traceback
 
 class Workday(Document):
@@ -333,12 +336,21 @@ def get_employee_checkin(employee,atime):
     ''' select DATE('date time');'''
     employee = employee
     atime = atime
-    checkin_list = frappe.db.sql(
-        """
-        SELECT  name,log_type,time,skip_auto_attendance,attendance FROM `tabEmployee Checkin` 
-        WHERE employee='%s' AND DATE(time)= DATE('%s') ORDER BY time ASC
-        """%(employee,atime), as_dict=1
-    )
+    EmployeeCheckin = frappe.qb.DocType('Employee Checkin')
+
+    checkin_list = (
+        frappe.qb.from_(EmployeeCheckin)
+        .select(
+            EmployeeCheckin.name,
+            EmployeeCheckin.log_type,
+            EmployeeCheckin.time,
+            EmployeeCheckin.skip_auto_attendance,
+            EmployeeCheckin.attendance
+        )
+        .where(EmployeeCheckin.employee == employee)
+        .where(Date(EmployeeCheckin.time) == getdate(atime))
+        .orderby(EmployeeCheckin.time, order=Order.asc)
+    ).run(as_dict=1)
     return checkin_list or []
 
 
@@ -349,13 +361,29 @@ def get_employee_default_work_hour(employee,adate):
     #validate current or active FY year WHERE --
     # AND YEAR(valid_from) = CAST(%(year)s as INT) AND YEAR(valid_to) = CAST(%(year)s as INT)
     # AND YEAR(w.valid_from) = CAST(('2022-01-01') as INT) AND YEAR(w.valid_to) = CAST(('2022-12-30') as INT);
-    target_work_hours= frappe.db.sql(
-        """ 
-    SELECT w.name,w.employee,w.valid_from,w.valid_to,d.day,d.hours,d.break_minutes  FROM `tabWeekly Working Hours` w  
-    LEFT JOIN `tabDaily Hours Detail` d ON w.name = d.parent 
-    WHERE w.employee='%s' AND d.day = DAYNAME('%s') and w.valid_from <= '%s' and w.valid_to >= '%s' and w.docstatus = 1
-    """%(employee,adate,adate,adate), as_dict=1
-    )
+    day_name = datetime.strptime(adate, "%Y-%m-%d").strftime("%A")
+    wwh = frappe.qb.DocType('Weekly Working Hours')
+    dhd = frappe.qb.DocType('Daily Hours Detail')
+
+    target_work_hours = (
+        frappe.qb.from_(wwh)
+        .left_join(dhd)
+        .on(wwh.name == dhd.parent)
+        .select(
+            wwh.name,
+            wwh.employee,
+            wwh.valid_from,
+            wwh.valid_to,
+            dhd.day,
+            dhd.hours,
+            dhd.break_minutes
+        )
+        .where(wwh.employee == employee)
+        .where(dhd.day == day_name)
+        .where(wwh.valid_from <= getdate(adate))
+        .where(wwh.valid_to >= getdate(adate))
+        .where(wwh.docstatus == 1)
+    ).run(as_dict=1)
 
     if not target_work_hours:
         frappe.throw(_('Please create Weekly Working Hours for the selected Employee:{0} first for date : {1}.').format(employee,adate))
@@ -547,30 +575,41 @@ def get_employee_attendance(employee,atime):
     employee = employee
     atime = atime
     
-    attendance_list = frappe.db.sql(
-        """
-        SELECT  name,employee,status,attendance_date,shift FROM `tabAttendance` 
-        WHERE employee='%s' AND DATE(attendance_date)= DATE('%s') AND docstatus = 1 ORDER BY attendance_date ASC
-        """%(employee,atime), as_dict=1
-    )
+    Attendance = frappe.qb.DocType('Attendance')
+    attendance_list = (
+        frappe.qb.from_(Attendance)
+        .select(
+            Attendance.name,
+            Attendance.employee,
+            Attendance.status,
+            Attendance.attendance_date,
+            Attendance.shift
+        )
+        .where(Attendance.employee == employee)
+        .where(Date(Attendance.attendance_date) == getdate(atime))
+        .where(Attendance.docstatus == 1)
+        .orderby(Attendance.attendance_date, order=Order.asc)
+    ).run(as_dict=True)
+
     return attendance_list
 
 
 @frappe.whitelist()
 def date_is_in_holiday_list(employee, date):
-	holiday_list = frappe.db.get_value("Employee", employee, "holiday_list")
-	if not holiday_list:
-		frappe.msgprint(_("Holiday list not set in {0}").format(employee))
-		return False
+    holiday_list = frappe.db.get_value("Employee", employee, "holiday_list")
+    if not holiday_list:
+        frappe.msgprint(_("Holiday list not set in {0}").format(employee))
+        return False
 
-	holidays = frappe.db.sql(
-        """
-            SELECT holiday_date FROM `tabHoliday`
-            WHERE parent=%s AND holiday_date=%s
-        """,(holiday_list, getdate(date))
-    )
+    Holiday = frappe.qb.DocType('Holiday')
+    holidays = (
+        frappe.qb.from_(Holiday)
+        .select(Holiday.holiday_date)
+        .where(Holiday.parent == holiday_list)
+        .where(Holiday.holiday_date == getdate(date))
+    ).run()
 
-	return len(holidays) > 0
+    return len(holidays) > 0
 
 
 @frappe.whitelist()
