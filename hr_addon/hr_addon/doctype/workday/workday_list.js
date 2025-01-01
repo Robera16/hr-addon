@@ -117,7 +117,7 @@ frappe.listview_settings['Workday'] = {
 				}],
 				primary_action(data) {
 					frappe.call({
-						method: "hr_addon.hr_addon.api.utils.get_missing_workdays",
+						method: "hr_addon.hr_addon.doctype.workday.workday.get_missing_workdays",
 						args: {
 							employee: dialog.fields_dict.employee.value,
 							date_to: dialog.fields_dict.date_to.value,
