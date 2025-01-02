@@ -108,61 +108,6 @@ class Workday(Document):
             )
 
 
-def bulk_process_workdays_background(data,flag):
-    '''bulk workday processing'''
-    frappe.msgprint(_("Bulk operation is enqueued in background."), alert=True)
-    frappe.enqueue(
-        'hr_addon.hr_addon.doctype.workday.workday.bulk_process_workdays',
-        queue='long',
-        data=data,
-        flag=flag
-    )
-
-
-@frappe.whitelist()
-def bulk_process_workdays(data,flag):
-    import json
-    if isinstance(data, str):
-        data = json.loads(data)
-    data = frappe._dict(data)
-
-    if data.employee and frappe.get_value('Employee', data.employee, 'status') != "Active":
-        frappe.throw(_("{0} is not active").format(frappe.get_desk_link('Employee', data.employee)))
-
-    company = frappe.get_value('Employee', data.employee, 'company')
-    if not data.unmarked_days:
-        frappe.throw(_("Please select a date"))
-        return
-
-    missing_dates = []
-    
-    for date in data.unmarked_days:
-        try:
-            if not frappe.db.exists('Workday', {'employee': data.employee,'log_date': get_datetime(date)}):
-                workday = frappe.new_doc("Workday")
-                workday.employee = data.employee
-                workday.company = company
-                workday.log_date = get_datetime(date)
-                if flag == "Create workday":
-                    workday.save()
-
-            missing_dates.append(get_datetime(date))
-
-        except Exception:
-            message = _("Something went wrong in Workday Creation: {0}".format(traceback.format_exc()))
-            frappe.msgprint(message)
-            frappe.log_error("bulk_process_workdays() error", message)
-    formatted_missing_dates = []
-    for missing_date in missing_dates:
-        formatted_m_date = formatdate(missing_date,'dd.MM.yyyy')
-        formatted_missing_dates.append(formatted_m_date)
-
-    return {
-        "message": 1,
-        "missing_dates": formatted_missing_dates,
-        "flag":flag
-    }
-
 def get_month_map():
     return frappe._dict({
         "January": 1,
@@ -178,7 +123,8 @@ def get_month_map():
         "November": 11,
         "December": 12
         })
-    
+
+
 @frappe.whitelist()
 def get_unmarked_days(employee, month, exclude_holidays=0):
     import calendar
@@ -604,3 +550,59 @@ def generate_workdays_for_past_7_days_now():
             "Creating Workday: Error in generate_workdays_for_past_7_days_now: {}".format(str(e)),
             "Error during generate_workdays_for_past_7_days_now"
         )
+
+
+def bulk_process_workdays_background(data,flag):
+    '''bulk workday processing'''
+    frappe.msgprint(_("Bulk operation is enqueued in background."), alert=True)
+    frappe.enqueue(
+        'hr_addon.hr_addon.doctype.workday.workday.bulk_process_workdays',
+        queue='long',
+        data=data,
+        flag=flag
+    )
+
+
+@frappe.whitelist()
+def bulk_process_workdays(data,flag):
+    import json
+    if isinstance(data, str):
+        data = json.loads(data)
+    data = frappe._dict(data)
+
+    if data.employee and frappe.get_value('Employee', data.employee, 'status') != "Active":
+        frappe.throw(_("{0} is not active").format(frappe.get_desk_link('Employee', data.employee)))
+
+    company = frappe.get_value('Employee', data.employee, 'company')
+    if not data.unmarked_days:
+        frappe.throw(_("Please select a date"))
+        return
+
+    missing_dates = []
+    
+    for date in data.unmarked_days:
+        try:
+            if not frappe.db.exists('Workday', {'employee': data.employee,'log_date': get_datetime(date)}):
+                workday = frappe.new_doc("Workday")
+                workday.employee = data.employee
+                workday.company = company
+                workday.log_date = get_datetime(date)
+                if flag == "Create workday":
+                    workday.save()
+
+            missing_dates.append(get_datetime(date))
+
+        except Exception:
+            message = _("Something went wrong in Workday Creation: {0}".format(traceback.format_exc()))
+            frappe.msgprint(message)
+            frappe.log_error("bulk_process_workdays() error", message)
+    formatted_missing_dates = []
+    for missing_date in missing_dates:
+        formatted_m_date = formatdate(missing_date,'dd.MM.yyyy')
+        formatted_missing_dates.append(formatted_m_date)
+
+    return {
+        "message": 1,
+        "missing_dates": formatted_missing_dates,
+        "flag":flag
+    }
