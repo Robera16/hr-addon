@@ -1,4 +1,3 @@
-frappe.provide("hr_addon.frappe.views");
 frappe.listview_settings["Weekly Working Hours"] = {
 	onload: function (list_view) {
 		
@@ -13,5 +12,3 @@ frappe.listview_settings["Weekly Working Hours"] = {
 		
 	},
 };
-
-
