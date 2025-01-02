@@ -41,7 +41,7 @@ frappe.ui.form.on('Workday', {
 	log_date: function(frm){
 		if (frm.doc.employee && frm.doc.log_date) {
 			frappe.call({
-				method: "hr_addon.hr_addon.api.utils.date_is_in_holiday_list",
+				method: "hr_addon.hr_addon.doctype.workday.workday.date_is_in_holiday_list",
 				args: {
 					employee: frm.doc.employee,
 					date: frm.doc.log_date
@@ -77,7 +77,7 @@ var get_hours = function(frm){
 	let adate = frm.doc.log_date;
 	if(aemployee && adate){
 		frappe.call({
-			method:'hr_addon.hr_addon.api.utils.get_actual_employee_log',
+			method:'hr_addon.hr_addon.doctype.workday.workday.get_actual_employee_log',
 			args:{aemployee:aemployee,adate:adate}
 		}).done((r)=>{
 			if (r.message && Object.keys(r.message).length > 0) {

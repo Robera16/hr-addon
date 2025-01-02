@@ -203,7 +203,7 @@ doctype_list_js = {"Weekly Working Hours" : "public/js/list_view.js"}
 
 scheduler_events = {
 	"hourly": [
-		"hr_addon.hr_addon.doctype.hr_addon_settings.hr_addon_settings.generate_workdays_scheduled_job"
+		"hr_addon.hr_addon.doctype.workday.workday.generate_workdays_scheduled_job"
 	],
     "yearly": [
         "hr_addon.custom_scripts.custom_python.weekly_working_hours.set_from_to_dates",
