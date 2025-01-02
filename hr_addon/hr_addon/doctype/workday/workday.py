@@ -32,6 +32,8 @@ class Workday(Document):
         self.total_target_seconds = new_workday_dict.get("total_target_seconds")
         self.manual_workday = new_workday_dict.get("manual_workday")
         self.actual_working_hours = new_workday_dict.get("actual_working_hours")
+        self.first_checkin = new_workday_dict.get("first_checkin")
+        self.last_checkout = new_workday_dict.get("last_checkout")
         self.attendance = new_workday_dict.get("attendance")
 
         employee_checkins = new_workday_dict.get("employee_checkins") or []
@@ -43,10 +45,6 @@ class Workday(Document):
                 "log_time": employee_checkin.get("time"),
                 "skip_auto_attendance": employee_checkin.get("skip_auto_attendance"),
             })
-
-        if employee_checkins:
-            self.first_checkin = employee_checkins[0].time
-            self.last_checkout = employee_checkins[-1].time
 
     def set_status_for_leave_application(self):
         leave_application = frappe.db.exists(
@@ -390,6 +388,8 @@ def get_actual_employee_log(aemployee, adate):
                 "attendance": view_employee_attendance[0].name if len(view_employee_attendance) > 0 else "",
                 "break_hours": 0,
                 "employee_checkins": [],
+                "first_checkin": "",
+                "last_checkout": "",
                 "expected_break_hours": expected_break_hours,
             }
 
@@ -403,7 +403,9 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
 
     hours_worked = 0.0
     total_duration = 0
-   
+    first_checkin = ""
+    last_checkout = ""
+
     # not pair of IN/OUT either missing
     if len(employee_checkins)% 2 != 0:
         hours_worked = -36.0
@@ -499,6 +501,8 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
         "attendance": attendance,        
         "break_hours": break_hours,
         "total_break_seconds": total_break_seconds,
+        "first_checkin": first_checkin,
+        "last_checkout": last_checkout,
         "employee_checkins":employee_checkins,
     })
 
