@@ -111,7 +111,6 @@ class Workday(Document):
 
 def bulk_process_workdays_background(data,flag):
     '''bulk workday processing'''
-    frappe.logger("Creating Workday").error("bulk_process_workdays_background")
     frappe.msgprint(_("Bulk operation is enqueued in background."), alert=True)
     frappe.enqueue(
         'hr_addon.hr_addon.doctype.workday.workday.bulk_process_workdays',
@@ -573,19 +572,16 @@ def generate_workdays_scheduled_job():
         now = frappe.utils.get_datetime()
         today_weekday_number = now.weekday()
         weekday_name = number2name_dict[today_weekday_number]
-        
-        frappe.logger("Creating Workday").error(f"Today is {weekday_name}, current hour is {now.hour}")
-        frappe.logger("Creating Workday").error(f"HR Addon Settings day is {hr_addon_settings.day}, time is {hr_addon_settings.time}")
-        
+
         if weekday_name == hr_addon_settings.day:
-            frappe.logger("Creating Workday").error("Day matched.")
             if now.hour == int(hr_addon_settings.time):
-                frappe.logger("Creating Workday").error("Time matched. Generating workdays...")
                 generate_workdays_for_past_7_days_now()
             else:
-                frappe.logger("Creating Workday").error(f"Time mismatch. Current hour: {now.hour}, Expected hour: {hr_addon_settings.time}")
+                title = "Scheduled Job generate_workdays_scheduled_job Time mismatch"
+                frappe.log_error(f"Time mismatch. Current hour: {now.hour}, Expected hour: {hr_addon_settings.time}", title)
         else:
-            frappe.logger("Creating Workday").error(f"Day mismatch. Today: {weekday_name}, Expected: {hr_addon_settings.day}")
+            title = "Scheduled Job generate_workdays_scheduled_job Time mismatch"
+            frappe.log_error(f"Day mismatch. Today: {weekday_name}, Expected: {hr_addon_settings.day}", title)
     except Exception as e:
         frappe.log_error("Error in generate_workdays_scheduled_job: {}".format(str(e)), "Scheduled Job Error")
 
@@ -594,23 +590,14 @@ def generate_workdays_scheduled_job():
 @frappe.whitelist()
 def generate_workdays_for_past_7_days_now():
     try:
-        today = frappe.utils.get_datetime()
-        a_week_ago = today - frappe.utils.datetime.timedelta(days=7)
-        frappe.logger("Creating Workday").error(f"Processing from {a_week_ago} to {today}")
-        
+        today = get_datetime()
+        a_week_ago = today - datetime.timedelta(days=7)
         employees = frappe.db.get_list("Employee", filters={"status": "Active"})
-        
-        frappe.logger("Creating Workday").error(f"Active employees: {employees}")
-        
+
         for employee in employees:
             employee_name = employee["name"]
-            
-            frappe.logger("Creating Workday").error(f"Processing employee: {employee_name}")
-            
             try:
-                unmarked_days = get_unmarked_range(employee_name, a_week_ago.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d"))
-                frappe.logger("Creating Workday").error(f"Unmarked days for {employee_name}: {unmarked_days}")
-                
+                unmarked_days = get_unmarked_range(employee_name, a_week_ago.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d"))                
                 data = {
                     "employee": employee_name,
                     "unmarked_days": unmarked_days
@@ -619,7 +606,6 @@ def generate_workdays_for_past_7_days_now():
                 
                 try:
                     bulk_process_workdays_background(data, flag)
-                    frappe.logger("Creating Workday").error(f"Workdays successfully processed for {employee_name}")
                 except Exception as e:
                     frappe.log_error(
                         "employee_name: {}, error: {} \n{}".format(employee_name, str(e), frappe.get_traceback()),
