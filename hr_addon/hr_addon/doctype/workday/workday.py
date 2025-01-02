@@ -4,12 +4,11 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, get_datetime, getdate, add_days, formatdate, flt
+from frappe.utils import cint, datetime, get_datetime, getdate, add_days, formatdate, flt
 from frappe.utils.data import date_diff, time_diff_in_hours
 from pypika import Order
 from pypika.functions import Date
 from hrms.hr.utils import get_holiday_dates_for_employee
-from datetime import datetime
 import traceback
 
 class Workday(Document):
@@ -105,7 +104,7 @@ class Workday(Document):
         if workday and self.is_new():
             frappe.throw(
             _("Workday already exists for employee: {0}, on the given date: {1}")
-            .format(self.employee, frappe.utils.formatdate(self.log_date))
+            .format(self.employee, formatdate(self.log_date))
             )
 
 
@@ -266,7 +265,7 @@ def get_created_workdays(employee, date_from, date_to):
     
     formatted_workdays = []
     for workday in workday_list:
-        date_obj = frappe.utils.getdate(workday['log_date'])
+        date_obj = getdate(workday['log_date'])
         formatted_date = formatdate(date_obj, 'dd.MM.yyyy')
         formatted_workdays.append({
             'log_date': formatted_date,
@@ -299,11 +298,9 @@ def get_employee_checkin(employee,atime):
 
 
 def get_employee_default_work_hour(employee,adate):
-    ''' weekly working hour'''
-    employee = employee
-    adate = adate    
+    adate = getdate(adate)
+    day_name = adate.strftime('%A')
 
-    day_name = datetime.strptime(adate, "%Y-%m-%d").strftime("%A")
     wwh = frappe.qb.DocType('Weekly Working Hours')
     dhd = frappe.qb.DocType('Daily Hours Detail')
 
@@ -533,7 +530,7 @@ def get_employee_attendance(employee,atime):
 
 @frappe.whitelist()
 def date_is_in_holiday_list(employee, date):
-    holiday_list = frappe.db.get_value("Employee", employee, "holiday_list")
+    holiday_list = frappe.get_cached_value("Employee", employee, "holiday_list")
     if not holiday_list:
         frappe.msgprint(_("Holiday list not set in {0}").format(employee))
         return False
@@ -552,11 +549,8 @@ def date_is_in_holiday_list(employee, date):
 @frappe.whitelist()
 def generate_workdays_scheduled_job():
     try:
-        hr_addon_settings = frappe.get_cached_doc("HR Addon Settings")
-        frappe.logger("Creating Workday").error(f"HR Addon Enabled: {hr_addon_settings.enabled}")
-        
+        hr_addon_settings = frappe.get_cached_doc("HR Addon Settings")        
         if hr_addon_settings.enabled == 0:
-            frappe.logger("Creating Workday").error("HR Addon is disabled. Exiting...")
             return
         
         number2name_dict = {
@@ -568,8 +562,7 @@ def generate_workdays_scheduled_job():
             5: "Saturday",
             6: "Sunday"
         }
-        
-        now = frappe.utils.get_datetime()
+        now = get_datetime()
         today_weekday_number = now.weekday()
         weekday_name = number2name_dict[today_weekday_number]
 
