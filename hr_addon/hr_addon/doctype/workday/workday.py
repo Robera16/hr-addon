@@ -17,7 +17,6 @@ class Workday(Document):
         self.date_is_in_comp_off()
         self.validate_duplicate_workday()
         self.set_status_for_leave_application()
-        # self.set_manual_workday()
 
     def set_actual_employee_log(self):
         new_workday_dict = get_actual_employee_log(self.employee, self.log_date)
@@ -110,12 +109,6 @@ class Workday(Document):
             .format(self.employee, frappe.utils.formatdate(self.log_date))
             )
 
-    # def set_manual_workday(self):
-    #     if self.manual_workday:
-    #         self.employee_checkins = []
-    #         self.total_work_seconds = self.hours_worked * 60 * 60
-    #         self.expected_break_hours = 0.0
-
 
 def bulk_process_workdays_background(data,flag):
     '''bulk workday processing'''
@@ -194,7 +187,7 @@ def get_unmarked_days(employee, month, exclude_holidays=0):
     '''get_umarked_days(employee,month,excludee_holidays=0, year)'''
     import calendar
     month_map = get_month_map() 
-    today = get_datetime() #get year from year
+    today = get_datetime()
     
 
     joining_date, relieving_date = frappe.get_cached_value("Employee", employee, ["date_of_joining", "relieving_date"])
@@ -246,12 +239,12 @@ def get_unmarked_range(employee, from_day, to_day):
     '''get_umarked_days(employee,month,excludee_holidays=0, year)'''
     import calendar
     month_map = get_month_map() 
-    today = get_datetime() #get year from year  
+    today = get_datetime()
 
     joining_date, relieving_date = frappe.get_cached_value("Employee", employee, ["date_of_joining", "relieving_date"])
     
     start_day = from_day
-    end_day = to_day #calendar.monthrange(today.year, month_map[month])[1] + 1  
+    end_day = to_day
 
     if joining_date and joining_date >= getdate(from_day):
         start_day = joining_date
@@ -274,9 +267,6 @@ def get_unmarked_range(employee, from_day, to_day):
 
     for date in days_of_list:
         date_time = get_datetime(date)
-        # considering today date
-        # if today.day <= date_time.day and today.month <= date_time.month and today.year <= date_time.year:
-        #   break
         if date_time not in marked_days:
             unmarked_days.append(date)
 
@@ -317,12 +307,9 @@ def get_created_workdays(employee, date_from, date_to):
         order_by="log_date asc" 
     )
     
-    # Format the dates
     formatted_workdays = []
     for workday in workday_list:
-        # Convert to date object
         date_obj = frappe.utils.getdate(workday['log_date'])
-        # Format the date to 'd.m.yy'
         formatted_date = formatdate(date_obj, 'dd.MM.yyyy')
         formatted_workdays.append({
             'log_date': formatted_date,
@@ -358,9 +345,7 @@ def get_employee_default_work_hour(employee,adate):
     ''' weekly working hour'''
     employee = employee
     adate = adate    
-    #validate current or active FY year WHERE --
-    # AND YEAR(valid_from) = CAST(%(year)s as INT) AND YEAR(valid_to) = CAST(%(year)s as INT)
-    # AND YEAR(w.valid_from) = CAST(('2022-01-01') as INT) AND YEAR(w.valid_to) = CAST(('2022-12-30') as INT);
+
     day_name = datetime.strptime(adate, "%Y-%m-%d").strftime("%A")
     wwh = frappe.qb.DocType('Weekly Working Hours')
     dhd = frappe.qb.DocType('Daily Hours Detail')
@@ -542,16 +527,6 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
         target_hours = 0
         total_target_seconds = 0
 
-    #if comp_off_doc:
-    #    hours_worked = 0
-    #    actual_working_hours = 0  
-    #    #frappe.msgprint(frappe.get_desk_link("Leave Application", comp_off_doc) )
-    #    frappe.msgprint("The selected employee: {} has a Leave Application with the leave type: 'Freizeitausgleich (Nicht buchen!)' on the given date :{}.".format(aemployee,adate))
-
-    # if target_hours == 0:
-    #     expected_break_hours = 0
-    #     total_break_seconds = 0
-
     new_workday.update({
         "target_hours": target_hours,
         "total_target_seconds": total_target_seconds,
@@ -618,12 +593,10 @@ def generate_workdays_scheduled_job():
         hr_addon_settings = frappe.get_doc("HR Addon Settings")
         frappe.logger("Creating Workday").error(f"HR Addon Enabled: {hr_addon_settings.enabled}")
         
-        # Check if the HR Addon is enabled
         if hr_addon_settings.enabled == 0:
             frappe.logger("Creating Workday").error("HR Addon is disabled. Exiting...")
             return
         
-        # Mapping weekday numbers to names
         number2name_dict = {
             0: "Monday",
             1: "Tuesday",
@@ -634,21 +607,17 @@ def generate_workdays_scheduled_job():
             6: "Sunday"
         }
         
-        # Get the current date and time
         now = frappe.utils.get_datetime()
         today_weekday_number = now.weekday()
         weekday_name = number2name_dict[today_weekday_number]
         
-        # Log the current day and hour
         frappe.logger("Creating Workday").error(f"Today is {weekday_name}, current hour is {now.hour}")
         frappe.logger("Creating Workday").error(f"HR Addon Settings day is {hr_addon_settings.day}, time is {hr_addon_settings.time}")
         
-        # Check if the current day and hour match the settings
         if weekday_name == hr_addon_settings.day:
             frappe.logger("Creating Workday").error("Day matched.")
             if now.hour == int(hr_addon_settings.time):
                 frappe.logger("Creating Workday").error("Time matched. Generating workdays...")
-                # Trigger workdays generation
                 generate_workdays_for_past_7_days_now()
             else:
                 frappe.logger("Creating Workday").error(f"Time mismatch. Current hour: {now.hour}, Expected hour: {hr_addon_settings.time}")
@@ -666,32 +635,25 @@ def generate_workdays_for_past_7_days_now():
         a_week_ago = today - frappe.utils.datetime.timedelta(days=7)
         frappe.logger("Creating Workday").error(f"Processing from {a_week_ago} to {today}")
         
-        # Get all active employees
         employees = frappe.db.get_list("Employee", filters={"status": "Active"})
         
-        # Log the list of employees for debugging
         frappe.logger("Creating Workday").error(f"Active employees: {employees}")
         
-        # Process each employee
         for employee in employees:
             employee_name = employee["name"]
             
-            # Log each employee name for debugging
             frappe.logger("Creating Workday").error(f"Processing employee: {employee_name}")
             
             try:
-                # Get unmarked workdays for the past 7 days
                 unmarked_days = get_unmarked_range(employee_name, a_week_ago.strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d"))
                 frappe.logger("Creating Workday").error(f"Unmarked days for {employee_name}: {unmarked_days}")
                 
-                # Prepare data and trigger bulk processing
                 data = {
                     "employee": employee_name,
                     "unmarked_days": unmarked_days
                 }
                 flag = "Create workday"
                 
-                # Add a try-catch block for the bulk processing
                 try:
                     bulk_process_workdays_background(data, flag)
                     frappe.logger("Creating Workday").error(f"Workdays successfully processed for {employee_name}")
