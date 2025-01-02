@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, get_datetime, getdate, add_days, formatdate, flt, cstr
+from frappe.utils import cint, get_datetime, getdate, add_days, formatdate, flt
 from frappe.utils.data import date_diff, time_diff_in_hours
 from pypika import Order
 from pypika.functions import Date
@@ -218,18 +218,12 @@ def get_unmarked_days(employee, month, exclude_holidays=0):
             break
         if date_time not in marked_days:
             unmarked_days.append(date)
-    
 
     return unmarked_days
 
 
 @frappe.whitelist()
 def get_unmarked_range(employee, from_day, to_day):
-    '''get_umarked_days(employee,month,excludee_holidays=0, year)'''
-    import calendar
-    month_map = get_month_map() 
-    today = get_datetime()
-
     joining_date, relieving_date = frappe.get_cached_value("Employee", employee, ["date_of_joining", "relieving_date"])
     
     start_day = from_day
@@ -244,7 +238,6 @@ def get_unmarked_range(employee, from_day, to_day):
     days_of_list = ['{}'.format(add_days(start_day,i)) for i in range(delta + 1)]   
     month_start, month_end = days_of_list[0], days_of_list[-1]  
 
-    """ ["docstatus", "!=", 2]"""
     rcords = frappe.get_list("Workday", fields=['log_date','employee'], filters=[
         ["log_date",">=",month_start],
         ["log_date","<=",month_end],
@@ -513,7 +506,6 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
 
 
 def get_employee_attendance(employee,atime):
-    ''' select DATE('date time');'''
     employee = employee
     atime = atime
     
