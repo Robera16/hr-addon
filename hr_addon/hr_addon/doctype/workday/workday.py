@@ -181,7 +181,6 @@ def get_month_map():
     
 @frappe.whitelist()
 def get_unmarked_days(employee, month, exclude_holidays=0):
-    '''get_umarked_days(employee,month,excludee_holidays=0, year)'''
     import calendar
     month_map = get_month_map() 
     today = get_datetime()
@@ -276,11 +275,7 @@ def get_created_workdays(employee, date_from, date_to):
 
 
 def get_employee_checkin(employee,atime):
-    ''' select DATE('date time');'''
-    employee = employee
-    atime = atime
     EmployeeCheckin = frappe.qb.DocType('Employee Checkin')
-
     checkin_list = (
         frappe.qb.from_(EmployeeCheckin)
         .select(
@@ -336,7 +331,6 @@ def get_employee_default_work_hour(employee,adate):
 
 @frappe.whitelist()
 def get_actual_employee_log(aemployee, adate):
-    '''total actual log'''
     employee_checkins = get_employee_checkin(aemployee,adate)
     employee_default_work_hour = get_employee_default_work_hour(aemployee,adate)
     is_date_in_holiday_list = date_is_in_holiday_list(aemployee,adate)
@@ -506,9 +500,6 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
 
 
 def get_employee_attendance(employee,atime):
-    employee = employee
-    atime = atime
-    
     Attendance = frappe.qb.DocType('Attendance')
     attendance_list = (
         frappe.qb.from_(Attendance)
@@ -578,7 +569,6 @@ def generate_workdays_scheduled_job():
     except Exception as e:
         frappe.log_error("Error in generate_workdays_scheduled_job: {}".format(str(e)), "Scheduled Job Error")
 
-			
 
 @frappe.whitelist()
 def generate_workdays_for_past_7_days_now():
