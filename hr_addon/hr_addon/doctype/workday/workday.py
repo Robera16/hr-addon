@@ -24,11 +24,8 @@ class Workday(Document):
 
         self.hours_worked = new_workday_dict.get("hours_worked")
         self.break_hours = new_workday_dict.get("break_hours")
-        self.total_work_seconds = new_workday_dict.get("total_work_seconds")
-        self.total_break_seconds = new_workday_dict.get("total_break_seconds")
         self.target_hours = new_workday_dict.get("target_hours")
         self.expected_break_hours = new_workday_dict.get("expected_break_hours")
-        self.total_target_seconds = new_workday_dict.get("total_target_seconds")
         self.manual_workday = new_workday_dict.get("manual_workday")
         self.actual_working_hours = new_workday_dict.get("actual_working_hours")
         self.first_checkin = new_workday_dict.get("first_checkin")
@@ -60,9 +57,6 @@ class Workday(Document):
             self.target_hours = 0
             self.expected_break_hours= 0
             self.actual_working_hours= 0
-            self.total_target_seconds= 0
-            self.total_break_seconds= 0
-            self.total_work_seconds= 0
             self.status = "On Leave"
 
         if (self.status == 'Half Day'):
@@ -92,8 +86,6 @@ class Workday(Document):
             self.hours_worked = 0.0
             self.actual_working_hours = -self.target_hours
             self.break_hours = 0.0
-            self.total_break_seconds = 0.0
-            self.total_work_seconds = flt(self.actual_working_hours * 60 * 60)
         
     def validate_duplicate_workday(self):
         workday = frappe.db.exists("Workday", {
@@ -298,15 +290,12 @@ def get_actual_employee_log(aemployee, adate):
         if is_target_hours_zero_on_holiday and is_date_in_holiday_list:
             new_workday = {
                 "target_hours": 0,
-                "total_target_seconds": 0,
                 "break_minutes": employee_default_work_hour.break_minutes,
                 "actual_working_hours": 0,
                 "hours_worked": 0,
                 "nbreak": 0,
                 "attendance": view_employee_attendance[0].name if len(view_employee_attendance) > 0 else "",
                 "break_hours": 0,
-                "total_work_seconds": 0,
-                "total_break_seconds": 0,
                 "employee_checkins": [],
                 "first_checkin": "",
                 "last_checkout": "",
@@ -315,7 +304,6 @@ def get_actual_employee_log(aemployee, adate):
         else:
             new_workday = {
                 "target_hours": employee_default_work_hour.hours,
-                "total_target_seconds": employee_default_work_hour.hours * 60 * 60,
                 "break_minutes": employee_default_work_hour.break_minutes,
                 "actual_working_hours": -employee_default_work_hour.hours,
                 "manual_workday": 1,
@@ -394,11 +382,8 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
 
     else:
         break_hours = flt(-360.0)
-    
-    total_target_seconds = target_hours * 60 * 60
-    total_work_seconds = flt(hours_worked * 60 * 60)
+
     expected_break_hours = flt(default_break_minutes / 60)
-    total_break_seconds = flt(break_hours * 60 * 60)
     hours_worked = flt(hours_worked)
 
     if is_break_from_checkins_with_swapped_hours:
@@ -417,26 +402,21 @@ def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, i
 
     if no_break_hours and hours_worked < 6 and not is_break_from_checkins_with_swapped_hours: # TODO: set 6 as constant
         default_break_minutes = 0
-        total_break_seconds = 0
         #expected_break_hours = 0
         actual_working_hours = hours_worked
 
     if is_target_hours_zero_on_holiday and is_date_in_holiday_list:
         target_hours = 0
-        total_target_seconds = 0
 
     new_workday.update({
         "target_hours": target_hours,
-        "total_target_seconds": total_target_seconds,
         "break_minutes": default_break_minutes,
         "hours_worked": hours_worked,
         "expected_break_hours": expected_break_hours,
         "actual_working_hours": actual_working_hours,
-        "total_work_seconds": total_work_seconds,
         "nbreak": 0,
         "attendance": attendance,        
         "break_hours": break_hours,
-        "total_break_seconds": total_break_seconds,
         "first_checkin": first_checkin,
         "last_checkout": last_checkout,
         "employee_checkins":employee_checkins,
