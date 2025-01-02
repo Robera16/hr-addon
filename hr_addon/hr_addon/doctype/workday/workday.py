@@ -8,6 +8,7 @@ from frappe.utils import cint, get_datetime, getdate, add_days, formatdate, flt,
 from frappe.utils.data import date_diff, time_diff_in_hours
 from pypika import Order
 from pypika.functions import Date
+from hrms.hr.utils import get_holiday_dates_for_employee
 from datetime import datetime
 import traceback
 
@@ -203,23 +204,11 @@ def get_unmarked_days(employee, month, exclude_holidays=0):
     dates_of_month = ['{}-{}-{}'.format(today.year, month_map[month], r) for r in range(start_day, end_day)]
     month_start, month_end = dates_of_month[0], dates_of_month[-1]
 
-    """ ["docstatus", "!=", 2]"""
-    rcords = frappe.get_list("Workday", fields=['log_date','employee'], filters=[
-        ["log_date",">=",month_start],
-        ["log_date","<=",month_end],
-        ["employee","=",employee]
-    ])
-    
     marked_days = [] 
     if cint(exclude_holidays):
-        if get_version() == 14:
-            from hrms.hr.utils import get_holiday_dates_for_employee
-
-            holiday_dates = get_holiday_dates_for_employee(employee, month_start, month_end)
-            holidays = [get_datetime(rcord) for rcord in holiday_dates]
-            marked_days.extend(holidays)
-
-
+        holiday_dates = get_holiday_dates_for_employee(employee, month_start, month_end)
+        holidays = [get_datetime(date) for date in holiday_dates]
+        marked_days.extend(holidays)
 
     unmarked_days = []
 
@@ -271,28 +260,6 @@ def get_unmarked_range(employee, from_day, to_day):
             unmarked_days.append(date)
 
     return unmarked_days
-
-
-def get_version():
-    branch_name = get_app_branch("erpnext")
-    if "14" in branch_name:
-        return 14
-    else: 
-        return 13
-
-def get_app_branch(app):
-    """Returns branch of an app"""
-    import subprocess
-
-    try:
-        branch = subprocess.check_output(
-            "cd ../apps/{0} && git rev-parse --abbrev-ref HEAD".format(app), shell=True
-        )
-        branch = branch.decode("utf-8")
-        branch = branch.strip()
-        return branch
-    except Exception:
-        return ""
     
 
 @frappe.whitelist()
@@ -437,7 +404,7 @@ def get_actual_employee_log(aemployee, adate):
 
 
 def get_workday(employee_checkins, employee_default_work_hour, no_break_hours, is_target_hours_zero_on_holiday,is_date_in_holiday_list=False):
-    hr_addon_settings = frappe.get_doc("HR Addon Settings")
+    hr_addon_settings = frappe.get_cached_doc("HR Addon Settings")
     is_break_from_checkins_with_swapped_hours = hr_addon_settings.workday_break_calculation_mechanism == "Break Hours from Employee Checkins" and hr_addon_settings.swap_hours_worked_and_actual_working_hours
     new_workday = {}
 
@@ -590,7 +557,7 @@ def date_is_in_holiday_list(employee, date):
 @frappe.whitelist()
 def generate_workdays_scheduled_job():
     try:
-        hr_addon_settings = frappe.get_doc("HR Addon Settings")
+        hr_addon_settings = frappe.get_cached_doc("HR Addon Settings")
         frappe.logger("Creating Workday").error(f"HR Addon Enabled: {hr_addon_settings.enabled}")
         
         if hr_addon_settings.enabled == 0:
