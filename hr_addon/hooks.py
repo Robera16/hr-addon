@@ -12,6 +12,12 @@ app_license = "MIT"
 # Includes in <head>
 # ------------------
 
+fixtures = [
+    {"dt": "Custom Field", "filters": [
+        ["module", "=", "HR Addon"]
+    ]}
+]
+
 # include js, css files in header of desk.html
 # app_include_css = "/assets/hr_addon/css/hr_addon.css"
 # app_include_js = "/assets/hr_addon/js/hr_addon.js"
