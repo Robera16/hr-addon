@@ -7,6 +7,9 @@ from frappe.model.document import Document
 from frappe.utils import cint, get_datetime, getdate, add_days, flt
 from frappe.utils.data import date_diff, time_diff_in_hours
 from frappe.query_builder import DocType
+from pypika import Order
+from pypika.functions import Date
+from datetime import datetime
 import traceback
 
 
@@ -224,12 +227,22 @@ def get_employee_checkin(employee,atime):
     ''' select DATE('date time');'''
     employee = employee
     atime = atime
-    checkin_list = frappe.db.sql(
-        """
-        SELECT  name,log_type,time,skip_auto_attendance,attendance FROM `tabEmployee Checkin` 
-        WHERE employee='%s' AND DATE(time)= DATE('%s') ORDER BY time ASC
-        """%(employee,atime), as_dict=1
-    )
+
+    EmployeeCheckin = frappe.qb.DocType('Employee Checkin')
+    checkin_list = (
+        frappe.qb.from_(EmployeeCheckin)
+        .select(
+            EmployeeCheckin.name,
+            EmployeeCheckin.log_type,
+            EmployeeCheckin.time,
+            EmployeeCheckin.skip_auto_attendance,
+            EmployeeCheckin.attendance
+        )
+        .where(EmployeeCheckin.employee == employee)
+        .where(Date(EmployeeCheckin.time) == getdate(atime))
+        .orderby(EmployeeCheckin.time, order=Order.asc)
+    ).run(as_dict=1)
+
     return checkin_list or []
 
 def get_employee_default_work_hour(aemployee,adate):
@@ -521,30 +534,41 @@ def get_employee_attendance(employee,atime):
     employee = employee
     atime = atime
     
-    attendance_list = frappe.db.sql(
-        """
-        SELECT  name,employee,status,attendance_date,shift FROM `tabAttendance` 
-        WHERE employee='%s' AND DATE(attendance_date)= DATE('%s') AND docstatus = 1 ORDER BY attendance_date ASC
-        """%(employee,atime), as_dict=1
-    )
+    Attendance = frappe.qb.DocType('Attendance')
+    attendance_list = (
+        frappe.qb.from_(Attendance)
+        .select(
+            Attendance.name,
+            Attendance.employee,
+            Attendance.status,
+            Attendance.attendance_date,
+            Attendance.shift
+        )
+        .where(Attendance.employee == employee)
+        .where(Date(Attendance.attendance_date) == getdate(atime))
+        .where(Attendance.docstatus == 1)
+        .orderby(Attendance.attendance_date, order=Order.asc)
+    ).run(as_dict=True)
+
     return attendance_list
 
 
 @frappe.whitelist()
 def date_is_in_holiday_list(employee, date):
-	holiday_list = frappe.db.get_value("Employee", employee, "holiday_list")
-	if not holiday_list:
-		frappe.msgprint(_("Holiday list not set in {0}").format(employee))
-		return False
+    holiday_list = frappe.get_cached_value("Employee", employee, "holiday_list")
+    if not holiday_list:
+        frappe.msgprint(_("Holiday list not set in {0}").format(employee))
+        return False
 
-	holidays = frappe.db.sql(
-        """
-            SELECT holiday_date FROM `tabHoliday`
-            WHERE parent=%s AND holiday_date=%s
-        """,(holiday_list, getdate(date))
-    )
+    Holiday = frappe.qb.DocType('Holiday')
+    holidays = (
+        frappe.qb.from_(Holiday)
+        .select(Holiday.holiday_date)
+        .where(Holiday.parent == holiday_list)
+        .where(Holiday.holiday_date == getdate(date))
+    ).run()
 
-	return len(holidays) > 0
+    return len(holidays) > 0
 
 
 def generate_workdays_scheduled_job():
