@@ -555,7 +555,7 @@ def get_employee_attendance(employee,atime):
 
 @frappe.whitelist()
 def date_is_in_holiday_list(employee, date):
-    holiday_list = frappe.db.get_value("Employee", employee, "holiday_list")
+    holiday_list = frappe.get_cached_value("Employee", employee, "holiday_list")
     if not holiday_list:
         frappe.msgprint(_("Holiday list not set in {0}").format(employee))
         return False
