@@ -27,10 +27,7 @@
   "first_checkin",
   "last_checkout",
   "column_break_17",
-  "company",
-  "total_work_seconds",
-  "total_break_seconds",
-  "total_target_seconds"
+  "company"
  ],
  "fields": [
   {
@@ -135,27 +132,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "total_work_seconds",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Worked In Seconds",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_break_seconds",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": "Break In Seconds",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_target_seconds",
-   "fieldtype": "Float",
-   "hidden": 1,
-   "label": " Target In Seconds",
-   "read_only": 1
-  },
-  {
    "fieldname": "actual_working_hours",
    "fieldtype": "Float",
    "label": "Actual Working Hours",
@@ -176,7 +152,7 @@
   }
  ],
  "links": [],
- "modified": "2024-12-30 14:38:07.679382",
+ "modified": "2025-01-02 15:23:49.959667",
  "modified_by": "Administrator",
  "module": "HR Addon",
  "name": "Workday",
