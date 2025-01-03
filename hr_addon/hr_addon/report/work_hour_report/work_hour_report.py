@@ -26,15 +26,14 @@ def get_data(filters):
 			(workday.break_hours * 3600).as_("total_break_seconds"),
 			(workday.actual_working_hours * 3600).as_("actual_working_seconds"),
 			(workday.expected_break_hours * 3600).as_("expected_break_hours"),
-			workday.target_hours,
-			workday.total_target_seconds,
+			(workday.target_hours * 3600).as_("total_target_seconds"),
 			(Case()
 				.when(workday.hours_worked * 3600 < 0, 0)
-				.else_(workday.hours_worked * 3600) - workday.total_target_seconds
+				.else_(workday.hours_worked * 3600) - (workday.target_hours * 3600)
 			).as_("diff_log"),
 			(Case()
 				.when(workday.actual_working_hours < 0, workday.actual_working_hours * 3600)
-				.else_(workday.actual_working_hours * 3600 - workday.total_target_seconds)
+				.else_(workday.actual_working_hours * 3600 - (workday.target_hours * 3600))
 			).as_("actual_diff_log"),
 			(workday.first_checkin).as_("first_in"),
 			(workday.last_checkout).as_("last_out"),
@@ -70,7 +69,7 @@ def get_columns():
 		# {'fieldname':'total_break_seconds','label':_('Break Hours'), "width": 110, },
 		{'fieldname':'expected_break_hours','label':'Expected Break Hours','width':80},
 		{'fieldname':'actual_working_seconds','label':_('Actual Working Hours'), "width": 110, },
-		{'fieldname':'total_target_seconds','label':'Target Seconds','width':80},
+		{'fieldname':'total_target_seconds','label':'Target Hours','width':130},
 		# {'fieldname':'diff_log','label':'Diff (Work Hours - Target Seconds)','width':90},
 		{'fieldname':'actual_diff_log','label':'Diff (Actual Working Hours - Target Seconds)','width':110},
 		{'fieldname':'first_in','label':'First Checkin','width':100},
