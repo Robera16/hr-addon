@@ -36,7 +36,7 @@ class Workday(Document):
 
         for employee_checkin in employee_checkins:
             self.append("employee_checkins", {
-employee_checkin                "employee_checkin": employee_checkin.get("name"),
+                "employee_checkin": employee_checkin.get("name"),
                 "log_type": employee_checkin.get("log_type"),
                 "log_time": employee_checkin.get("time"),
                 "skip_auto_attendance": employee_checkin.get("skip_auto_attendance"),
