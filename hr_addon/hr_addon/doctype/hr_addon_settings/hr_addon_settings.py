@@ -284,7 +284,7 @@ def create_file(file_name, file_content, doc_name):
     with open(file_path, 'wb') as ical_file:
         ical_file.write(file_content)
 
-@frappe.whitelist()
+
 def failed_schedule_job_monitoring():
     hr_addon_settings = frappe.get_cached_doc("HR Addon Settings")
     if not hr_addon_settings.enable_failed_scheduled_job_log_monitoring:
