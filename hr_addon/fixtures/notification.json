@@ -1,0 +1,43 @@
+[
+ {
+  "attach_print": 0,
+  "channel": "Email",
+  "condition": null,
+  "date_changed": null,
+  "days_in_advance": 0,
+  "docstatus": 0,
+  "doctype": "Notification",
+  "document_type": "Scheduled Job Log",
+  "enabled": 1,
+  "event": "Custom",
+  "is_standard": 0,
+  "message": "<p>Dear User,</p>\n<p>An error occurred during the workday generation process: {{ doc.scheduled_job_type }}</p>\n<pre>Error: {{ doc.details }}</pre>\n<p>Please check the logs or contact the administrator for more details.</p>",
+  "message_type": "Markdown",
+  "method": null,
+  "modified": "2025-01-23 16:40:09.087994",
+  "module": null,
+  "name": "HR Addon Failed Scheduled Job Log Notification",
+  "print_format": null,
+  "property_value": null,
+  "recipients": [
+   {
+    "bcc": null,
+    "cc": null,
+    "condition": null,
+    "parent": "HR Addon Failed Scheduled Job Log Notification",
+    "parentfield": "recipients",
+    "parenttype": "Notification",
+    "receiver_by_document_field": null,
+    "receiver_by_role": "HR Manager"
+   }
+  ],
+  "send_system_notification": 0,
+  "send_to_all_assignees": 0,
+  "sender": null,
+  "sender_email": null,
+  "set_property_after_alert": null,
+  "slack_webhook_url": null,
+  "subject": "Error in {{ doc.scheduled_job_type }}",
+  "value_changed": null
+ }
+]
