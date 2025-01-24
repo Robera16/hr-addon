@@ -15,14 +15,7 @@ app_license = "MIT"
 fixtures = [
     {"dt": "Custom Field", "filters": [
         ["module", "=", "HR Addon"]
-    ]},
-    {"dt": "Notification", "filters": [
-        [
-            "name", "in", [
-                "HR Addon Failed Scheduled Job Log Notification",
-              ]
-        ]
-    ]}    
+    ]}   
 ]
 
 # include js, css files in header of desk.html
